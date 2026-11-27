@@ -1,0 +1,15 @@
+             ==++#                     puyuliao@antigravity
+     ==      =+        ===-*           ----------------------------------------
+    *:-===+++++++===++=-::.+           Name        : Pu-Yu Liao
+     -.:=========+==--=:.:-++          ORCID       : 0009-0005-5248-0063
+     +.:-===============::=+=+*        Role        : A&R Capital · Research Team (2022-now)
+   #*++======--=========-:-=+=+        Education   : M.S. CSIE, National Taiwan University
+   *=+============-=====+-+*++*        ICPC 2019   : Asia Taipei-Hsinchu · 5th Place
+  *+++====-.-=--=:.:======+++*         ICPC 2019   : Asia Seoul · 7th Place
+    **========---.-+*++===+==+*        Vibe        : Antigravity CLI Lover (w/ Hagemi)
+     *+==+==+=....:--:===++===+=       Formal Math : P vs NP (Lean 4) · 3 Merged PRs
+    +++*==-..........===++=====++      Paper       : JMIR Formative Research '26 (DEPRESAR)
+  ++===++-++=-==-=+=+*==+*+==--===-    Stack       : C++ · Python · Lean 4 · Linux · tmux
+==+=-==+==+-:+*=-+#-.-+==++=----=+==
+=----=+=++===**--+*+===++-+===----==
+=::-+=++=.:*#+-::-+*%+..=++===-==:-+
