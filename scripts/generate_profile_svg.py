@@ -202,13 +202,12 @@ def sample_ascii_grid(
                 )
                 row_cells.append((ch, (tr, tg, tb)))
         grid.append(row_cells)
-    enhance_hagemi_mouth(grid, im, dark_mode=dark_mode)
+    enhance_hagemi_mouth(grid, dark_mode=dark_mode)
     return grid
 
 
 def enhance_hagemi_mouth(
     grid: list[list[tuple[str, tuple[int, int, int]] | None]],
-    im: Image.Image,
     dark_mode: bool,
 ) -> None:
     """Crisp up Hagemi's thin :3 cat mouth so LANCZOS downsampling doesn't wash it out."""
@@ -217,67 +216,24 @@ def enhance_hagemi_mouth(
     if rows < 20 or cols < 40:
         return
 
-    w, h = im.size
-    px = im.load()
-    best_row = None
-    best_score = 999.0
-
-    # Scan lower-center face region for the horizontal mouth dip amidst bright skin.
-    for gy in range(int(rows * 0.62), int(rows * 0.74)):
-        y0, y1 = int(gy * h / rows), max(int(gy * h / rows) + 1, int((gy + 1) * h / rows))
-        row_mins: list[float] = []
-        for gx in range(int(cols * 0.39), int(cols * 0.50)):
-            x0, x1 = int(gx * w / cols), max(int(gx * w / cols) + 1, int((gx + 1) * w / cols))
-            min_l = 255.0
-            for yy in range(y0, y1):
-                for xx in range(x0, x1):
-                    r, g, b, a = px[xx, yy]
-                    if a > 64:
-                        lum = 0.299 * r + 0.587 * g + 0.114 * b
-                        if lum < min_l:
-                            min_l = lum
-            row_mins.append(min_l)
-        if row_mins:
-            avg_dip = sum(sorted(row_mins)[:3]) / min(3, len(row_mins))
-            if avg_dip < best_score:
-                best_score = avg_dip
-                best_row = gy
-
-    if best_row is None or best_score > 160:
+    # Place the mouth directly above the chin (row 19 of 27, below the eye band).
+    mouth_row = round(rows * 19 / 27)
+    center_col = round(cols * 27 / 62)
+    if not (0 <= mouth_row < rows):
         return
 
-    # Find the darkest columns along best_row inside the cheek-to-cheek span.
-    y0, y1 = int(best_row * h / rows), max(int(best_row * h / rows) + 1, int((best_row + 1) * h / rows))
-    col_dips: list[tuple[int, float]] = []
-    for gx in range(int(cols * 0.39), int(cols * 0.50)):
-        x0, x1 = int(gx * w / cols), max(int(gx * w / cols) + 1, int((gx + 1) * w / cols))
-        min_l = 255.0
-        for yy in range(y0, y1):
-            for xx in range(x0, x1):
-                r, g, b, a = px[xx, yy]
-                if a > 64:
-                    lum = 0.299 * r + 0.587 * g + 0.114 * b
-                    if lum < min_l:
-                        min_l = lum
-        if min_l < 155:
-            col_dips.append((gx, min_l))
-
-    if not col_dips:
-        return
-
-    center_col = round(sum(c for c, _ in col_dips) / len(col_dips))
     mouth_color = (244, 63, 94) if dark_mode else (159, 18, 57)
     # Soften immediate cheek glyphs so the ':3' smile isn't crowded by tall letters.
     for offset, cheek_glyph in ((-3, "+"), (-2, "="), (2, "="), (3, "+")):
         cx = center_col + offset
-        if 0 <= cx < cols and grid[best_row][cx] is not None:
-            _, rgb = grid[best_row][cx]
-            grid[best_row][cx] = (cheek_glyph, rgb)
+        if 0 <= cx < cols and grid[mouth_row][cx] is not None:
+            _, rgb = grid[mouth_row][cx]
+            grid[mouth_row][cx] = (cheek_glyph, rgb)
     # Render a crisp 3-char ':3' (w-shaped) cat smile centered between the eyes.
     for offset, glyph in ((-1, "v"), (0, "^"), (1, "v")):
         cx = center_col + offset
-        if 0 <= cx < cols and grid[best_row][cx] is not None:
-            grid[best_row][cx] = (glyph, mouth_color)
+        if 0 <= cx < cols and grid[mouth_row][cx] is not None:
+            grid[mouth_row][cx] = (glyph, mouth_color)
 
 
 def color_dist(c1: tuple[int, int, int], c2: tuple[int, int, int]) -> float:
