@@ -31,7 +31,7 @@
 <summary>✦ Plain-Text Hagemi ASCII Card</summary>
 
 ```text
-             ==++#                     puyuliao@antigravity
+             ==++#                     puyu@anr.capital
      ==      =+        ===-*           ----------------------------------------
     *:-===+++++++===++=-::.+           Name        : Pu-Yu Liao
      -.:=========+==--=:.:-++          ORCID       : 0009-0005-5248-0063

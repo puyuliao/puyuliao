@@ -202,7 +202,82 @@ def sample_ascii_grid(
                 )
                 row_cells.append((ch, (tr, tg, tb)))
         grid.append(row_cells)
+    enhance_hagemi_mouth(grid, im, dark_mode=dark_mode)
     return grid
+
+
+def enhance_hagemi_mouth(
+    grid: list[list[tuple[str, tuple[int, int, int]] | None]],
+    im: Image.Image,
+    dark_mode: bool,
+) -> None:
+    """Crisp up Hagemi's thin :3 cat mouth so LANCZOS downsampling doesn't wash it out."""
+    rows = len(grid)
+    cols = len(grid[0]) if rows else 0
+    if rows < 20 or cols < 40:
+        return
+
+    w, h = im.size
+    px = im.load()
+    best_row = None
+    best_score = 999.0
+
+    # Scan lower-center face region for the horizontal mouth dip amidst bright skin.
+    for gy in range(int(rows * 0.62), int(rows * 0.74)):
+        y0, y1 = int(gy * h / rows), max(int(gy * h / rows) + 1, int((gy + 1) * h / rows))
+        row_mins: list[float] = []
+        for gx in range(int(cols * 0.39), int(cols * 0.50)):
+            x0, x1 = int(gx * w / cols), max(int(gx * w / cols) + 1, int((gx + 1) * w / cols))
+            min_l = 255.0
+            for yy in range(y0, y1):
+                for xx in range(x0, x1):
+                    r, g, b, a = px[xx, yy]
+                    if a > 64:
+                        lum = 0.299 * r + 0.587 * g + 0.114 * b
+                        if lum < min_l:
+                            min_l = lum
+            row_mins.append(min_l)
+        if row_mins:
+            avg_dip = sum(sorted(row_mins)[:3]) / min(3, len(row_mins))
+            if avg_dip < best_score:
+                best_score = avg_dip
+                best_row = gy
+
+    if best_row is None or best_score > 160:
+        return
+
+    # Find the darkest columns along best_row inside the cheek-to-cheek span.
+    y0, y1 = int(best_row * h / rows), max(int(best_row * h / rows) + 1, int((best_row + 1) * h / rows))
+    col_dips: list[tuple[int, float]] = []
+    for gx in range(int(cols * 0.39), int(cols * 0.50)):
+        x0, x1 = int(gx * w / cols), max(int(gx * w / cols) + 1, int((gx + 1) * w / cols))
+        min_l = 255.0
+        for yy in range(y0, y1):
+            for xx in range(x0, x1):
+                r, g, b, a = px[xx, yy]
+                if a > 64:
+                    lum = 0.299 * r + 0.587 * g + 0.114 * b
+                    if lum < min_l:
+                        min_l = lum
+        if min_l < 155:
+            col_dips.append((gx, min_l))
+
+    if not col_dips:
+        return
+
+    center_col = round(sum(c for c, _ in col_dips) / len(col_dips))
+    mouth_color = (244, 63, 94) if dark_mode else (159, 18, 57)
+    # Soften immediate cheek glyphs so the ':3' smile isn't crowded by tall letters.
+    for offset, cheek_glyph in ((-3, "+"), (-2, "="), (2, "="), (3, "+")):
+        cx = center_col + offset
+        if 0 <= cx < cols and grid[best_row][cx] is not None:
+            _, rgb = grid[best_row][cx]
+            grid[best_row][cx] = (cheek_glyph, rgb)
+    # Render a crisp 3-char ':3' (w-shaped) cat smile centered between the eyes.
+    for offset, glyph in ((-1, "v"), (0, "^"), (1, "v")):
+        cx = center_col + offset
+        if 0 <= cx < cols and grid[best_row][cx] is not None:
+            grid[best_row][cx] = (glyph, mouth_color)
 
 
 def color_dist(c1: tuple[int, int, int], c2: tuple[int, int, int]) -> float:
@@ -422,7 +497,7 @@ def build_svg(theme: Theme, sprite_path: Path) -> str:
     <circle cx="26" cy="22" r="6" fill="#ff5f56" />
     <circle cx="46" cy="22" r="6" fill="#ffbd2e" />
     <circle cx="66" cy="22" r="6" fill="#27c93f" />
-    <text x="480" y="26" text-anchor="middle" class="mono" font-size="12.5" fill="{theme.muted}">puyuliao@antigravity: ~ — hagemi-fetch</text>
+    <text x="480" y="26" text-anchor="middle" class="mono" font-size="12.5" fill="{theme.muted}">puyu@anr.capital: ~ — hagemi-fetch</text>
 
     <!-- Ambient Gemini sparkles -->
     {"".join(sparkle_paths)}
@@ -437,9 +512,9 @@ def build_svg(theme: Theme, sprite_path: Path) -> str:
 
     <!-- Right column: Profile header -->
     <text x="{right_x:.0f}" y="{title_y:.0f}" class="mono" font-size="18" font-weight="700">
-      <tspan fill="{theme.prompt_user}">puyuliao</tspan><tspan fill="{theme.muted}">@</tspan><tspan fill="{theme.prompt_host}">antigravity</tspan>
+      <tspan fill="{theme.prompt_user}">puyu</tspan><tspan fill="{theme.muted}">@</tspan><tspan fill="{theme.prompt_host}">anr.capital</tspan>
     </text>
-    <text x="{right_x:.0f}" y="{subtitle_y:.0f}" class="mono" font-size="12.5" fill="{theme.muted}">Pu-Yu Liao (廖普宇) · Quant &amp; Algorithms</text>
+    <text x="{right_x:.0f}" y="{subtitle_y:.0f}" class="mono" font-size="12.5" fill="{theme.muted}">Pu-Yu Liao · Quant &amp; Algorithms</text>
     <line x1="{right_x:.0f}" y1="{divider_y:.0f}" x2="928" y2="{divider_y:.0f}" stroke="{theme.divider}" stroke-width="1.2" />
 
     <!-- Right column: Key-value metadata -->
@@ -495,7 +570,7 @@ def build_plaintext_ascii(sprite_path: Path) -> str:
         art_lines.append("".join(chars))
 
     info_lines = [
-        "puyuliao@antigravity",
+        "puyu@anr.capital",
         "----------------------------------------",
         "Name        : Pu-Yu Liao",
         "ORCID       : 0009-0005-5248-0063",
